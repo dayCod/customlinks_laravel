@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\Blog;
 use Illuminate\Support\Facades\Route;
+use App\Helpers\RouteHelper;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +16,35 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+$route = RouteHelper::RouteData();
+
+Route::get('/', function() {
+
+    $blog = Blog::all();
+
+    return view('blog.page', compact('blog'));
+    
+});
+
+Route::prefix('{route}')->group(function() use($route) {
+    Route::get('/', function() use($route) {
+        try {
+            $data = array_filter($route, function($v, $k) {
+                return $v['name'] == request()->segment(1);
+            }, ARRAY_FILTER_USE_BOTH);
+
+            if(count($data) > 0) {
+                $id = array_values($data)[0]['id'];
+
+                $blog = Blog::where('route_id', $id)->get();
+
+                return view('blog.page', compact('blog'));
+            } else {
+                return response()->json('Page Tidak Ada');
+            }
+
+        } catch(ModelNotFoundException $e) {
+            return response()->json($e->getMessage());
+        }
+    });
 });
